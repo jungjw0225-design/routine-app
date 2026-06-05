@@ -1,0 +1,8 @@
+# config.js는 커밋하지 않음 (Firebase 설정값 노출 방지)
+# 단, Firebase config는 보통 공개 가능하지만 안전을 위해 제외하려면 아래 주석 해제
+# config.js
+
+# 실제로 커밋해도 되지만 원하면 주석 해제
+node_modules/
+.DS_Store
+Thumbs.db
