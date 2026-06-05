@@ -484,18 +484,77 @@ input,button{font-family:inherit}
 ::-webkit-scrollbar{width:0}
 
 /* Desktop Responsive */
-@media (min-width: 600px) {
-  body { display:flex; justify-content:center; }
+@media (min-width: 768px) {
+  body { display:flex; }
+
   #app {
-    width: 100%;
-    max-width: 480px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+    padding-left: 220px;
     min-height: 100dvh;
-    box-shadow: 0 0 60px rgba(0,0,0,0.5);
   }
+
   .bottom-nav {
-    max-width: 480px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 220px;
+    height: 100vh;
+    flex-direction: column;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    padding: 28px 0 24px;
+    align-items: stretch;
+    gap: 2px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .bottom-nav::before {
+    content: '루틴';
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    padding: 0 20px 24px;
+    letter-spacing: -.02em;
+  }
+
+  .nav-btn {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 11px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    margin: 0 10px;
+    width: calc(100% - 20px);
+  }
+
+  .nav-btn.active {
+    background: var(--accent-dim);
+  }
+
+  .tab-content {
+    flex: 1;
+    max-width: 720px;
+  }
+
+  .page-header {
+    padding: 32px 28px 12px;
+  }
+
+  .header-title {
+    font-size: 30px;
+  }
+
+  .progress-card, .today-list, .dash-card,
+  .cal-wrap, .manage-wrap {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 28px;
+    padding-right: 28px;
   }
 }
 </style>
