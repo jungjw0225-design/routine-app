@@ -1211,7 +1211,6 @@ function makeRoutineItem(r) {
 function renderManage() {
   const wrap=document.getElementById('manage-list');
   wrap.innerHTML='';
-  if(!routines.length){wrap.innerHTML='<div class="empty">루틴을 추가해보세요!</div>';return;}
 
   CATS.forEach(cat=>{
     const items=[...routines]
