@@ -1210,8 +1210,6 @@ function renderManage() {
     const items=[...routines]
       .filter(r=>r.category===cat.id)
       .sort((a,b)=>(a.sort_order??0)-(b.sort_order??0));
-    if(!items.length) return;
-
     const sec=document.createElement('div');
     sec.className='mcat-sec'; sec.dataset.cat=cat.id; sec.draggable=true;
 
@@ -1513,6 +1511,7 @@ function renderTrash() {
 // ── Tab Switch ────────────────────────────────────
 function switchTab(tab) {
   activeTab=tab;
+  window.scrollTo({top:0, behavior:'instant'});
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.add('hidden'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.remove('hidden');
@@ -1587,7 +1586,7 @@ function renderCatManageList() {
   const el=document.getElementById('cat-manage-list'); if(!el) return;
   el.innerHTML='';
   CATS.forEach(cat=>{
-    const isDefault=['morning','commute','lunch','evening_commute','evening','bedtime'].includes(cat.id);
+    const isDefault=false;
     const row=document.createElement('div'); row.className='cat-manage-item';
     row.innerHTML=`
       <span class="cat-manage-icon">${cat.icon}</span>
