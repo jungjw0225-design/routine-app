@@ -467,6 +467,11 @@ input,button{font-family:inherit}
 .trash-item:last-child{border-bottom:none}
 .trash-name{font-size:14px;color:var(--text2);text-decoration:line-through;text-decoration-color:var(--text3)}
 .trash-meta-row{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px}
+.manage-tabs{display:flex;gap:8px;padding:0 20px 16px}
+.manage-tab-btn{flex:1;padding:9px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.manage-tab-btn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.cat-section-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.cat-section-item:last-child{border-bottom:none}
 .cat-manage-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
 .cat-manage-item:last-child{border-bottom:none}
 .cat-manage-icon{font-size:18px;width:28px;text-align:center}
@@ -690,6 +695,7 @@ input,button{font-family:inherit}
         </button>
       </div>
     </header>
+    <!-- 설정 섹션 -->
     <div class="manage-wrap">
       <div class="setting-card">
         <div class="setting-row">
@@ -709,17 +715,25 @@ input,button{font-family:inherit}
         </div>
         <p class="setting-hint">예) 오전 5시 설정 시<br>새벽 4시에 체크해도 전날 루틴으로 저장돼요</p>
       </div>
-
-
     </div>
 
-    <!-- 카테고리 관리 섹션 -->
-    <div class="manage-wrap" style="margin-top:0">
-      <div class="section-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);padding:0 4px 10px">카테고리</div>
-      <div id="cat-manage-list"></div>
+    <!-- 관리 탭 토글 -->
+    <div class="manage-tabs">
+      <button class="manage-tab-btn active" id="manage-tab-routines" onclick="switchManageTab('routines')">루틴</button>
+      <button class="manage-tab-btn" id="manage-tab-categories" onclick="switchManageTab('categories')">카테고리</button>
     </div>
 
-    <div class="manage-wrap" id="manage-list"></div>
+    <!-- 루틴 섹션 -->
+    <div id="section-routines">
+      <div class="manage-wrap" id="manage-list"></div>
+    </div>
+
+    <!-- 카테고리 섹션 (숨김 상태로 시작) -->
+    <div id="section-categories" class="hidden">
+      <div class="manage-wrap">
+        <div id="cat-section-list"></div>
+      </div>
+    </div>
 
     <!-- 휴지통 섹션 -->
     <div class="manage-wrap" id="trash-section" style="margin-top:8px">
@@ -975,6 +989,7 @@ function renderAll() {
   renderDash();
   renderCal();
   renderManage();
+  renderCategories();
 }
 
 // TODAY
@@ -1228,26 +1243,7 @@ function renderManage() {
         </svg>
       </div>
       <div class="cat-dot-sm" style="background:${cat.color}"></div>
-      <span class="mcat-title-text">${cat.icon} ${cat.name}</span>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <button class="btn-edit cat-edit-btn" data-cid="${cat.id}" title="카테고리 수정">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-        </button>
-        <button class="btn-del cat-del-btn" data-cid="${cat.id}" title="카테고리 삭제">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-            <path d="M10 11v6"/><path d="M14 11v6"/>
-          </svg>
-        </button>
-      </div>`;
-    hdr.querySelector('.cat-edit-btn').addEventListener('click', e=>{
-      e.stopPropagation(); openEditCat(cat.id);
-    });
-    hdr.querySelector('.cat-del-btn').addEventListener('click', e=>{
-      e.stopPropagation(); deleteCat(cat.id);
-    });
+      <span class="mcat-title-text">${cat.icon} ${cat.name}</span>`;
     sec.appendChild(hdr);
 
     items.forEach(r=>sec.appendChild(makeRoutineItem(r)));
@@ -1396,6 +1392,80 @@ function saveCatOrder() {
   CATS.sort((a,b)=>newOrder.indexOf(a.id)-newOrder.indexOf(b.id));
   saveCatsToFirebase();
   renderToday();
+}
+
+function switchManageTab(tab) {
+  document.querySelectorAll('.manage-tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('manage-tab-'+tab).classList.add('active');
+  document.getElementById('section-routines').classList.toggle('hidden', tab!=='routines');
+  document.getElementById('section-categories').classList.toggle('hidden', tab!=='categories');
+}
+
+function renderCategories() {
+  const el=document.getElementById('cat-section-list'); if(!el) return;
+  el.innerHTML='';
+  CATS.forEach(cat=>{
+    const row=document.createElement('div');
+    row.className='cat-section-item'; row.dataset.cid=cat.id; row.draggable=true;
+    row.innerHTML=`
+      <div class="drag-handle" title="순서 변경" style="cursor:grab;color:var(--text3);padding:2px 4px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </div>
+      <div style="width:10px;height:10px;border-radius:50%;background:${cat.color};flex-shrink:0"></div>
+      <span style="font-size:18px;width:28px;text-align:center">${cat.icon}</span>
+      <span style="flex:1;font-size:15px">${esc(cat.name)}</span>
+      <div class="mi-actions">
+        <button class="btn-edit" data-cid="${cat.id}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="btn-del" data-cid="${cat.id}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/>
+          </svg>
+        </button>
+      </div>`;
+    row.querySelector('.btn-edit').addEventListener('click',()=>openEditCat(cat.id));
+    row.querySelector('.btn-del').addEventListener('click',()=>deleteCat(cat.id));
+    el.appendChild(row);
+  });
+  initCatSectionDnD();
+}
+
+function initCatSectionDnD() {
+  const wrap=document.getElementById('cat-section-list');
+  if(!wrap) return;
+  let dragging=null;
+  wrap.querySelectorAll('.cat-section-item').forEach(row=>{
+    row.addEventListener('dragstart', e=>{
+      if(!e.target.closest('.drag-handle')) return;
+      dragging=row; row.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    row.addEventListener('dragend', ()=>{
+      row.classList.remove('dragging');
+      wrap.querySelectorAll('.cat-section-item').forEach(r=>r.classList.remove('drag-over'));
+      if(dragging) {
+        const newOrder=[...wrap.querySelectorAll('.cat-section-item')].map(r=>r.dataset.cid);
+        CATS.sort((a,b)=>newOrder.indexOf(a.id)-newOrder.indexOf(b.id));
+        saveCatsToFirebase();
+      }
+      dragging=null;
+    });
+    row.addEventListener('dragover', e=>{
+      e.preventDefault();
+      if(!dragging||row===dragging) return;
+      row.classList.add('drag-over');
+      const midY=row.getBoundingClientRect().top+row.offsetHeight/2;
+      if(e.clientY<midY) wrap.insertBefore(dragging,row);
+      else wrap.insertBefore(dragging,row.nextSibling);
+    });
+    row.addEventListener('dragleave', ()=>row.classList.remove('drag-over'));
+  });
 }
 
 function saveCatsToFirebase() {
@@ -1716,6 +1786,7 @@ window.delRoutine = delRoutine;
 window.restoreRoutine = restoreRoutine;
 window.permanentDelete = permanentDelete;
 window.switchTab = switchTab;
+window.switchManageTab = switchManageTab;
 window.saveRoutine = saveRoutine;
 window.closeModal = closeModal;
 window.openAddCat = openAddCat;
