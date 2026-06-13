@@ -601,12 +601,12 @@ input,button{font-family:inherit}
   <div id="tab-today" class="tab-content">
     <header class="page-header">
       <div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <p class="header-date" id="today-label"></p>
-          <button id="date-pick-btn" title="날짜 선택" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:2px;line-height:1;display:flex;align-items:center">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          </button>
-          <input type="date" id="date-picker-input" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <p class="header-date" id="today-label" style="margin-bottom:0"></p>
+          <span style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--accent);flex-shrink:0" title="날짜 선택">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <input type="date" id="date-picker-input" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;-webkit-appearance:none;appearance:none">
+          </span>
         </div>
         <h2 class="header-title">오늘의 루틴</h2>
         <button id="back-to-today-btn" class="hidden" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;margin-top:4px;padding:0">← 오늘로 돌아가기</button>
@@ -1791,27 +1791,30 @@ function closeCatModal() { document.getElementById('cat-modal').classList.add('h
 // ── window 전역 등록 (type="module" 환경에서 onclick 대응) ──
 window.handleLogout = handleLogout;
 // ── Feature 2: 날짜 선택 ──────────────────────────
-document.getElementById('date-pick-btn').addEventListener('click', () => {
-  const input = document.getElementById('date-picker-input');
-  const base  = new Date(today()+'T00:00:00');
-  const min   = new Date(base); min.setDate(min.getDate()-30);
-  input.max = today();
-  input.min = toDate(min);
-  input.value = activeDateOverride || today();
-  input.style.pointerEvents = 'auto';
-  input.showPicker ? input.showPicker() : input.click();
-});
+const datePickerInput = document.getElementById('date-picker-input');
 
-document.getElementById('date-picker-input').addEventListener('change', e => {
+// 탭/포커스 시점에 선택 범위(과거30일~오늘) 갱신 — 네이티브 달력이 input 위 투명 영역 탭으로 바로 열림
+function refreshDateRange() {
+  const base = new Date(today()+'T00:00:00');
+  const min  = new Date(base); min.setDate(min.getDate()-30);
+  datePickerInput.max = today();
+  datePickerInput.min = toDate(min);
+  datePickerInput.value = activeDateOverride || today();
+}
+datePickerInput.addEventListener('focus', refreshDateRange);
+datePickerInput.addEventListener('click', refreshDateRange);
+
+datePickerInput.addEventListener('change', e => {
   const val = e.target.value;
   activeDateOverride = (val && val !== today()) ? val : null;
-  e.target.style.pointerEvents = 'none';
+  dayCloseOverride   = null;  // 날짜 직접 선택 시 마감 상태는 해제
   renderAll();
 });
 
 document.getElementById('back-to-today-btn').addEventListener('click', () => {
   activeDateOverride = null;
   dayCloseOverride   = null;
+  datePickerInput.value = today();
   const btn = document.getElementById('day-close-btn');
   if (btn) { btn.textContent = '하루 마감하기'; btn.style.color = 'var(--text)'; btn.style.borderColor = 'var(--border2)'; }
   renderAll();
