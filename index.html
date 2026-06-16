@@ -1839,7 +1839,7 @@ document.getElementById('day-close-btn').addEventListener('click', () => {
     btn.style.borderColor = 'var(--border2)';
     renderAll();
   } else {
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+    const tomorrow = new Date(today()+'T00:00:00'); tomorrow.setDate(tomorrow.getDate()+1);
     dayCloseOverride   = toDate(tomorrow);
     activeDateOverride = null;
     btn.textContent = '마감 취소';
@@ -1850,9 +1850,9 @@ document.getElementById('day-close-btn').addEventListener('click', () => {
   }
 });
 
-// 마감 override 자동 해제 (자정 또는 dayEndHour 지나면)
+// 마감 override 자동 해제 (실제 자정 기준 — day_end_hour와 무관)
 setInterval(() => {
-  if (dayCloseOverride && today() >= dayCloseOverride) {
+  if (dayCloseOverride && toDate(new Date()) >= dayCloseOverride) {
     dayCloseOverride = null;
     const btn = document.getElementById('day-close-btn');
     if (btn) { btn.textContent = '하루 마감하기'; btn.style.color = 'var(--text)'; btn.style.borderColor = 'var(--border2)'; }
