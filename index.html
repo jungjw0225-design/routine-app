@@ -9,6 +9,10 @@
 <link rel="icon" href="icon.png"/>
 <title>루틴</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://apis.google.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
 <style>
 /* ── Variables ───────────────────────────────── */
@@ -56,6 +60,21 @@ input,button{font-family:inherit}
   padding-bottom:calc(var(--nav-h) + var(--safe-b));
   padding-top:var(--safe-t);
 }
+
+/* ── Loading Screen ──────────────────────────── */
+#loading-screen{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100vh;background:#1a1a2e;gap:22px;
+}
+#loading-screen .load-title{color:#e2e8f0;font-size:24px;font-weight:700}
+#loading-screen .spinner{
+  width:38px;height:38px;border-radius:50%;
+  border:3px solid rgba(226,201,126,0.18);
+  border-top-color:#e2c97e;
+  animation:spin 0.8s linear infinite;
+}
+#loading-screen .load-text{color:#718096;font-size:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* ── Bottom Nav ──────────────────────────────── */
 .bottom-nav{
@@ -567,8 +586,15 @@ input,button{font-family:inherit}
 </head>
 <body>
 
+<!-- ── 로딩 화면 ───────────────────────────────── -->
+<div id="loading-screen">
+  <h1 class="load-title">루틴 트래커</h1>
+  <div class="spinner"></div>
+  <p class="load-text">불러오는 중…</p>
+</div>
+
 <!-- ── 로그인 화면 ─────────────────────────────── -->
-<div id="login-screen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;gap:20px">
+<div id="login-screen" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;gap:20px">
   <h1 style="color:#e2e8f0;font-size:24px;font-weight:700">루틴 트래커</h1>
   <p style="color:#718096;font-size:14px">기기 간 동기화를 위해 로그인하세요</p>
   <button id="google-login-btn" style="display:flex;align-items:center;gap:10px;background:#fff;color:#333;border:none;border-radius:12px;padding:12px 24px;font-size:15px;font-weight:600;cursor:pointer">
@@ -979,7 +1005,21 @@ function setupRealtimeListeners(uid) {
 }
 
 // ── Auth State ───────────────────────────────────
+let authResolved = false;
+
+// 안전장치: Firebase 로드 실패 등으로 onAuthStateChanged가 안 오면
+// 스피너에 갇히지 않도록 7초 후 로그인 화면으로 전환.
+const authTimeout = setTimeout(() => {
+  if (authResolved) return;
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}, 7000);
+
 onAuthStateChanged(auth, user => {
+  authResolved = true;
+  clearTimeout(authTimeout);
+  document.getElementById('loading-screen').style.display = 'none';
   if (user) {
     currentUser = user;
     document.getElementById('login-screen').style.display = 'none';
