@@ -2020,6 +2020,51 @@ setInterval(() => {
   }
 }, 30000);
 
+// ── Feature 1: 포그라운드 자동 새로고침 ──────────────────
+// 백그라운드→포그라운드 복귀 시 자동 갱신.
+// 30분 이상 떠나 있었으면 location.reload(), 아니면 renderAll()(가벼운 새로고침).
+// 논리적 오늘(today())이 바뀌었으면 최상단으로 스크롤.
+let lastHidden = 0;
+let lastToday  = today();
+const RELOAD_AFTER_MS = 30 * 60 * 1000;
+function appVisible() {
+  // 미로그인(앱 미표시)/로딩 화면에선 동작하지 않게 가드
+  const app = document.getElementById('app');
+  return !!currentUser && !!app && app.style.display !== 'none';
+}
+let fgGuard = false;
+function onForeground() {
+  // bfcache 복귀 시 pageshow + visibilitychange:visible가 연달아 발화해
+  // onForeground가 두 번 호출되며 불필요한 재렌더가 생기는 것을 한 tick 동안 차단.
+  if (fgGuard) return;
+  fgGuard = true;
+  setTimeout(() => { fgGuard = false; }, 0);
+  const away = lastHidden ? Date.now() - lastHidden : 0;
+  lastHidden = 0;
+  if (!appVisible()) return;
+  // 열려 있는 모달(루틴/카테고리)이 있으면 reload로 입력 중인 값을 날리지 않도록 보류하고
+  // 가벼운 renderAll로 대체. (모달은 .hidden 클래스로 토글됨)
+  const modalOpen = ['modal','cat-modal'].some(id => {
+    const el = document.getElementById(id);
+    return el && !el.classList.contains('hidden');
+  });
+  if (away >= RELOAD_AFTER_MS && !modalOpen) { location.reload(); return; }
+  const nowToday = today();
+  const dateChanged = nowToday !== lastToday;
+  lastToday = nowToday;
+  renderAll();
+  if (dateChanged) window.scrollTo(0, 0);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { lastHidden = Date.now(); lastToday = today(); }
+  else if (document.visibilityState === 'visible') onForeground();
+});
+window.addEventListener('pageshow', e => { if (e.persisted) onForeground(); });
+// 데스크톱에서 다른 OS 앱으로 전환 시엔 visibilitychange:hidden이 발화하지 않으므로
+// blur에서 lastHidden을 기록해야 복귀(focus) 시 onForeground가 의미를 갖는다.
+window.addEventListener('blur', () => { if (appVisible() && !lastHidden) { lastHidden = Date.now(); lastToday = today(); } });
+window.addEventListener('focus', () => { if (lastHidden) onForeground(); });
+
 window.toggle = toggle;
 window.openAdd = openAdd;
 window.openEdit = openEdit;
