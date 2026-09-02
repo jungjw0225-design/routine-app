@@ -77,6 +77,14 @@ input,button{font-family:inherit}
   animation:spin 0.8s linear infinite;
 }
 #loading-screen .load-text{color:#718096;font-size:14px}
+#boot-progress{display:flex;flex-direction:column;align-items:center;gap:22px}
+#boot-error{flex-direction:column;align-items:center;gap:16px;padding:0 32px;text-align:center}
+#boot-error .boot-error-title{color:#fc8181;font-size:15px;font-weight:700}
+.boot-retry-btn{
+  background:#e2c97e;color:#1a1a2e;border:none;border-radius:12px;
+  padding:11px 26px;font-size:15px;font-weight:700;font-family:inherit;
+  cursor:pointer;margin-top:4px;
+}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ── Bottom Nav ──────────────────────────────── */
@@ -514,6 +522,11 @@ input,button{font-family:inherit}
 @media (min-width: 768px) {
   body { display:flex; }
 
+  /* body가 flex가 되면 전체화면 오버레이들도 flex 아이템이 되어 내용 폭만큼
+     줄어든다(#app만 flex:1을 갖고 있었음). 폭을 채워주지 않으면 데스크톱에서
+     좁은 좌측 기둥으로 렌더되고 문구가 잘린다. */
+  #loading-screen, #login-screen { flex:1; }
+
   #app {
     flex: 1;
     display: flex;
@@ -592,8 +605,15 @@ input,button{font-family:inherit}
 <!-- ── 로딩 화면 ───────────────────────────────── -->
 <div id="loading-screen">
   <h1 class="load-title">루틴 트래커</h1>
-  <div class="spinner"></div>
-  <p class="load-text">불러오는 중…</p>
+  <div id="boot-progress">
+    <div class="spinner"></div>
+    <p class="load-text">불러오는 중…</p>
+  </div>
+  <div id="boot-error" style="display:none">
+    <p class="boot-error-title">연결에 실패했어요</p>
+    <p class="load-text">네트워크 상태를 확인한 뒤 다시 시도해 주세요.</p>
+    <button type="button" id="boot-retry" class="boot-retry-btn">다시 시도</button>
+  </div>
 </div>
 
 <!-- ── 로그인 화면 ─────────────────────────────── -->
@@ -856,6 +876,33 @@ input,button{font-family:inherit}
 
 <div class="toast hidden" id="toast"></div>
 
+<!-- ── 부팅 안전장치 ────────────────────────────────
+     반드시 일반 스크립트여야 한다(type="module" 금지).
+     아래 모듈은 gstatic Firebase SDK를 static import 하는데, ES 모듈은
+     import가 하나라도 실패하면 본문이 한 줄도 실행되지 않는다. 즉 모듈
+     안의 authTimeout은 "Firebase 로드 실패" 상황에서 등록조차 되지 않아
+     정작 막으려던 무한 스피너를 막지 못한다.
+     이 스크립트는 모듈 밖에 있어 그 경우에도 살아남는다. -->
+<script>
+(function () {
+  // 모듈 내부 authTimeout(7초)보다 길게 — 모듈이 살아 있으면 그쪽이 먼저 처리한다.
+  var GRACE_MS = 10000;
+
+  setTimeout(function () {
+    var load = document.getElementById('loading-screen');
+    if (!load || getComputedStyle(load).display === 'none') return;
+    // 로딩 화면이 아직 그대로면 모듈이 실행되지 않았거나 도중에 멈춘 것이다.
+    var prog = document.getElementById('boot-progress');
+    var err  = document.getElementById('boot-error');
+    if (prog) prog.style.display = 'none';
+    if (err)  err.style.display  = 'flex';
+  }, GRACE_MS);
+
+  var retry = document.getElementById('boot-retry');
+  if (retry) retry.addEventListener('click', function () { location.reload(); });
+})();
+</script>
+
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
@@ -1099,9 +1146,12 @@ if (document.getElementById('app').style.display === 'block') optimisticRendered
 // ── Auth State ───────────────────────────────────
 let authResolved = false;
 
-// 안전장치: Firebase 로드 실패 등으로 onAuthStateChanged가 안 오면
-// 스피너에 갇히지 않도록 7초 후 로그인 화면으로 전환.
+// 안전장치(1/2): SDK는 떴지만 onAuthStateChanged가 안 오는 경우 —
+// 7초 후 로그인 화면으로 전환. 로그인 버튼이 살아 있으므로 사용자가 재시도할 수 있다.
 // (캐시로 이미 app을 띄웠다면 로딩화면이 없으므로 타임아웃이 화면을 가로채지 않게 처리)
+//
+// SDK 자체가 로드되지 않는 경우는 이 코드가 실행조차 되지 않으므로 여기서 못 막는다.
+// 그건 body 끝의 일반 스크립트(부팅 안전장치, 10초)가 담당한다.
 const authTimeout = setTimeout(() => {
   if (authResolved) return;
   if (optimisticRendered) return;   // 캐시 렌더 중이면 화면 유지, onAuthStateChanged가 수렴 처리
